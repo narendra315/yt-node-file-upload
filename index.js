@@ -2,59 +2,58 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const uniqid = require('uniqid');
+const fileUpload = require('express-fileupload');
+const fs = require('fs');
 const app = express();
 
 app.use('*', cors());
 app.use(bodyParser.json());
+app.use(fileUpload({
+    createParentPath: true,
+    debug: true,
+    limits: {
+        fileSize: 50 * 1024 * 1024 // 50 MB
+    },
+}));
 
 app.get('/', (req, res) => {
     res.send("API is up and running.")
 })
 
-let userList = [];
-
-app.get('/user/list', (req, res) => {
-    const { page, limit } = req.query;
-    console.log(page, limit);
-    res.send({ result: userList, error: null });
-})
-
-app.post('/user', (req, res) => {
+app.put('/user/profile-picture', (req, res) => {
     try {
-        const model = req.body;
+        const files = req.files;
+        if (files) {
 
-        model.id = uniqid();
-        userList.push(model);
-        res.send({ result: model, error: null })
-    } catch (err) {
-        res.send({ result: null, error: err.message })
-    }
-})
+            const originalFileName = files.profile.name;
+            const originalFileNameArr = originalFileName.split('.');
+            const fileExtension = originalFileNameArr[originalFileNameArr.length - 1];
+            const fileName = `${uniqid()}.${fileExtension}`;
 
-app.put('/user/:id', (req, res) => {
-    try {
-        const id = req.params.id;
-        const filteredList = userList.filter(i => i.id !== id);
-        const model = req.body;
-        model.id = id;
-        filteredList.push(model);
-        userList = filteredList;
+            const model = {
+                fileName, originalFileName
+            }
+            const uid = uniqid();
+            let staticFolderPath = __dirname + `/profile-picture/${uid}`;
+            
+            // if (!fs.existsSync(staticFolderPath)) {
+            //     fs.mkdirSync(staticFolderPath, { recursive: true });
+            // }
 
-        res.send({ result: model, error: null })
+            const attachFile = files.profile;
+            const folderPath = `${staticFolderPath}/${fileName}`;
+            attachFile.mv(folderPath, function (error) {
+                if (error) {
+                    res.send({ result: null, error: error.message })
+                } else {
+                    res.send({ result: "success", error: null })
+                }
+            });
 
-    } catch (err) {
-        res.send({ result: null, error: err.message })
-    }
-})
 
-app.delete('/user/:id', (req, res) => {
-    try {
-        const id = req.params.id;
-        const filteredList = userList.filter(i => i.id !== id);
-        userList = filteredList;
-
-        res.send({ result: "success", error: null })
-
+        } else {
+            res.send({ result: "failed", error: "File not found" })
+        }
     } catch (err) {
         res.send({ result: null, error: err.message })
     }

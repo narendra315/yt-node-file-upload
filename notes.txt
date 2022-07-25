@@ -1,3 +1,7 @@
-Why do we need to create APIs/REST APIs?
-Existing Systems Architecture
-Existing Systems Architecture
+- basic structure
+- versioning
+- upload a document
+- token management
+- using a config file
+- connecting a database
+- what is typescripting
